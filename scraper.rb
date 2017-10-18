@@ -38,9 +38,8 @@ end
 
 class RobotScraper
   def initialize(websites_urls)
-    @websites_urls = websites_urls
-    tmp = valid_urls
-    @targets = tmp.map do |target|
+    # @websites_urls = websites_urls
+    @targets = (valid_urls websites_urls).map do |target|
       target.map { |website, url|  Website.new(url) unless url.nil? }
     end
   end
@@ -53,8 +52,8 @@ class RobotScraper
 
   private
 
-  def valid_urls
-    @websites_urls.map do |target|
+  def valid_urls(websites_urls)
+    websites_urls.map do |target|
       target.map { |website, urls|
         urls.map { |url|
           robot_url = "#{url}/robots.txt"

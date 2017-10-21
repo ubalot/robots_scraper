@@ -28,16 +28,13 @@ end
 
 
 class Website
+  @@ua_identifier = "User-agent: "  # user-agent identifier
+  @@sm_identifier = "Sitemap: "  # site-map identifier
+
   def initialize(website_url)
     @robot_url = website_url
     @robot_content = getTargetContent
     useragents = extractUseragentAndRules
-    # puts "useragents #{useragents} "
-    # @useragents = useragents.map { |element|
-    #   element.map { |useragent, rules|
-    #     Useragent.new(useragent, rules) unless useragent.nil? or rules.nil?
-    #   }
-    # }.flatten
     @useragents = useragents.map { |useragent, rules|
         Useragent.new(useragent, rules) unless useragent.nil? or rules.nil?
     }.flatten
@@ -64,21 +61,20 @@ class Website
   def extractUseragentAndRules
 
     def extractUseragent (line)
-      identifier = "User-agent: "
-      line[(line.index(identifier) + identifier.length)..line.length] unless line[identifier].nil?
+      line[(line.index(@@ua_identifier) + @@ua_identifier.length)..line.length] unless line[@@ua_identifier].nil?
     end
 
     useragents = {}
     useragent = rule = nil
-    
+
     @robot_content.split("\n").map do |line|
       new_useragent = extractUseragent line
       useragent = new_useragent unless new_useragent.nil?
       useragents[useragent] = [] if useragents[useragent].nil?
-      rule = line if line["User-agent: "].nil? and line.index("#") != 0
+      rule = line if line[@@ua_identifier].nil? and line.index("#") != 0
       useragents[useragent].push(rule) unless useragent.nil? or rule.nil? or rule.empty?
     end
-    # puts "useragents #{useragents}"
+
     useragents
   end
 
@@ -87,7 +83,6 @@ end
 
 class RobotScraper
   def initialize(websites_urls)
-    # @websites_urls = websites_urls
     @targets = (valid_urls websites_urls).map do |target|
       target.map { |website, url|  Website.new(url) unless url.nil? }
     end

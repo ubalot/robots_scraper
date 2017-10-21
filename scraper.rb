@@ -4,6 +4,8 @@ require 'open-uri'
 websites = [
   'google.com', 'amazon.com', 'paypal.com', 'pgdsjk.gprejg'
 ]
+websites = ['google.com']
+
 
 headers = ['https', 'http']
 
@@ -12,15 +14,40 @@ websites_urls = websites.map do |website|
 end
 
 
+class Useragent
+  def initialize(useragent, rules)
+    @useragent = useragent
+    @rules = rules
+  end
+
+  def show
+    puts "useragent #{@useragent}"
+    puts "rules #{@rules}"
+  end
+end
+
+
 class Website
   def initialize(website_url)
     @robot_url = website_url
     @robot_content = getTargetContent
+    useragents = extractUseragentAndRules
+    # puts "useragents #{useragents} "
+    # @useragents = useragents.map { |element|
+    #   element.map { |useragent, rules|
+    #     Useragent.new(useragent, rules) unless useragent.nil? or rules.nil?
+    #   }
+    # }.flatten
+    @useragents = useragents.map { |useragent, rules|
+        Useragent.new(useragent, rules) unless useragent.nil? or rules.nil?
+    }.flatten
   end
 
   def show
     puts "@robot_url #{@robot_url}"
-    puts "@robot_content #{@robot_content}"
+    # puts "@robot_content #{@robot_content}"
+    puts "@useragents #{@useragents}"
+    @useragents.map do |useragent| useragent.show end
   end
 
   private
@@ -28,11 +55,33 @@ class Website
   def getTargetContent
     begin
         content = open(@robot_url).read unless @robot_url.nil?
-        content unless content.nil? || !content['User-agent']
+        content unless content.nil? or content['User-agent'].nil?
     rescue Errno::ECONNREFUSED => error
         nil
     end
   end
+
+  def extractUseragentAndRules
+
+    def extractUseragent (line)
+      identifier = "User-agent: "
+      line[(line.index(identifier) + identifier.length)..line.length] unless line[identifier].nil?
+    end
+
+    useragents = {}
+    useragent = rule = nil
+    
+    @robot_content.split("\n").map do |line|
+      new_useragent = extractUseragent line
+      useragent = new_useragent unless new_useragent.nil?
+      useragents[useragent] = [] if useragents[useragent].nil?
+      rule = line if line["User-agent: "].nil? and line.index("#") != 0
+      useragents[useragent].push(rule) unless useragent.nil? or rule.nil? or rule.empty?
+    end
+    # puts "useragents #{useragents}"
+    useragents
+  end
+
 end
 
 

@@ -39,10 +39,10 @@ class RobotsTxt
   def initialize(robots_url)
     @robot_url = robots_url
     @robot_content = getTargetContent
-    useragents = extractUseragentAndRules
-    @useragents = useragents.map { |useragent, rules|
+    @useragents = (extractUseragentAndRules).map { |useragent, rules|
         Useragent.new(useragent, rules) unless useragent.nil? or rules.nil?
     }.delete_if { |userAgent| userAgent.nil? }
+    # @sitemaps = extractSitemaps
   end
 
   def show
@@ -75,7 +75,7 @@ class RobotsTxt
       new_useragent = extractUseragent line
       useragent = new_useragent unless new_useragent.nil?
       useragents[useragent] = [] if useragents[useragent].nil?
-      rule = line if line[@@ua_identifier].nil? and line.index("#") != 0
+      rule = line if line[@@ua_identifier].nil? and line.index("#") != 0 and line[@@sm_identifier].nil?
       useragents[useragent].push(rule) unless useragent.nil? or rule.nil? or rule.empty?
     end
 
@@ -101,9 +101,7 @@ class RobotsScraper
 
   def show
     # puts "targets #{@targets}"
-    @targets.map { |website, robotsTxt|
-      robotsTxt.show 
-    }
+    @targets.map { |website, robotsTxt| robotsTxt.show }
     puts
   end
 

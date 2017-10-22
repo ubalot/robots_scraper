@@ -1,18 +1,23 @@
 require 'open-uri'
 
 
+DEBUG = true
+
+ROBOT_LIST_FILE = "robots_list.txt"
+
+
 websites = [
   'google.com', 'amazon.com', 'paypal.com', 'pgdsjk.gprejg'
-]
-websites = ['google.com']
+].uniq
+websites = ['google.com'] if DEBUG
 
 
 headers = ['https', 'http']
 
-websites_urls = websites.map do |website|
-  { website => headers.map { |header| "#{header}://#{website}" } }
-end
-
+websites_urls = Hash[websites.map { |website|
+  [ website, headers.map { |header| "#{header}://#{website}" } ]
+  }
+]
 
 class Useragent
   def initialize(useragent, rules)
@@ -27,22 +32,21 @@ class Useragent
 end
 
 
-class Website
+class RobotsTxt
   @@ua_identifier = "User-agent: "  # user-agent identifier
   @@sm_identifier = "Sitemap: "  # site-map identifier
 
-  def initialize(website_url)
-    @robot_url = website_url
+  def initialize(robots_url)
+    @robot_url = robots_url
     @robot_content = getTargetContent
     useragents = extractUseragentAndRules
     @useragents = useragents.map { |useragent, rules|
         Useragent.new(useragent, rules) unless useragent.nil? or rules.nil?
-    }.flatten
+    }.delete_if { |userAgent| userAgent.nil? }
   end
 
   def show
     puts "@robot_url #{@robot_url}"
-    # puts "@robot_content #{@robot_content}"
     puts "@useragents #{@useragents}"
     @useragents.map do |useragent| useragent.show end
   end
@@ -53,7 +57,7 @@ class Website
     begin
         content = open(@robot_url).read unless @robot_url.nil?
         content unless content.nil? or content['User-agent'].nil?
-    rescue Errno::ECONNREFUSED => error
+    rescue Exception
         nil
     end
   end
@@ -81,41 +85,40 @@ class Website
 end
 
 
-class RobotScraper
+class RobotsScraper
   def initialize(websites_urls)
-    @targets = (valid_urls websites_urls).map do |target|
-      target.map { |website, url|  Website.new(url) unless url.nil? }
-    end
+    puts "websites_urls #{websites_urls}" if DEBUG
+    @targets = Hash[websites_urls.map { |website, urls|
+      url = urls.map { |url|
+        robots_url = "#{url}/robots.txt"
+        robots_url if exists robots_url
+      }.first
+      [ website, url ]
+    }].delete_if { |website, url| url.nil? }.map { |website, url|
+      [website, RobotsTxt.new(url)]
+    }
   end
 
   def show
-    puts "websties_urls #{@websites_urls}"
-    @targets.map do |target| target.map { |t| t.show } end
+    # puts "targets #{@targets}"
+    @targets.map { |website, robotsTxt|
+      robotsTxt.show 
+    }
     puts
   end
 
   private
 
-  def valid_urls(websites_urls)
-    websites_urls.map do |target|
-      target.map { |website, urls|
-        urls.map { |url|
-          robot_url = "#{url}/robots.txt"
-          { website => robot_url } unless (validator robot_url).nil?
-        }.compact.first
-      }.compact.first
-    end
-  end
-
-  def validator(robot_url)
+  def exists(robots_url)
     begin
-        !open(robot_url).nil?
-    rescue Errno::ECONNREFUSED => error
+        puts "robot_url #{robots_url}" if DEBUG
+        true unless open(robots_url).nil? or (open(robots_url).read)['User-agent'].nil?
+    rescue Exception #Errno::ECONNREFUSED, OpenURI::HTTPError,
         nil
     end
   end
 
 end
 
-rs = RobotScraper.new(websites_urls)
+rs = RobotsScraper.new(websites_urls)
 rs.show

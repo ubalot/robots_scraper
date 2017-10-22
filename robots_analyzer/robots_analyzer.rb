@@ -1,4 +1,6 @@
 require_relative './useragent'
+require_relative './sitemap'
+
 
 class RobotsAnalyzer
   @@ua_identifier = "User-agent: "  # user-agent identifier
@@ -7,7 +9,7 @@ class RobotsAnalyzer
   def initialize(robots_url)
     @robot_url = robots_url
     @robot_content = getTargetContent
-    @useragents = (extractUseragentAndRules).map { |useragent, rules|
+    @useragents = (extractUseragentsAndRules).map { |useragent, rules|
         Useragent.new(useragent, rules) unless useragent.nil? or rules.nil?
     }.delete_if { |userAgent| userAgent.nil? }
     @sitemaps = extractSitemaps
@@ -17,8 +19,7 @@ class RobotsAnalyzer
     puts "@robot_url #{@robot_url}"
     puts "@useragents #{@useragents}"
     @useragents.map do |useragent| useragent.show end
-    puts "@sitemaps #{@sitemaps}"
-    # @sitempas do |sitemap| sitemap.show end
+    @sitemaps.map do |sitemap| sitemap.show end
   end
 
   private
@@ -32,7 +33,7 @@ class RobotsAnalyzer
     end
   end
 
-  def extractUseragentAndRules
+  def extractUseragentsAndRules
 
     def extractUseragent (line)
       line[(line.index(@@ua_identifier) + @@ua_identifier.length)..line.length]
@@ -59,8 +60,10 @@ class RobotsAnalyzer
     end
 
     @robot_content.split("\n").map { |line|
-      extractSitemap line unless line[@@sm_identifier].nil?
+      sitemap = extractSitemap line unless line[@@sm_identifier].nil?
+      SiteMap.new(sitemap) unless sitemap.nil?
     }.compact
+
   end
 
 end

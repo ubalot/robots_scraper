@@ -3,8 +3,6 @@ require 'open-uri'
 require_relative './robots_analyzer/robots_analyzer'
 
 
-DEBUG = true
-
 ROBOT_LIST_FILE = "robots_list.txt"
 
 websites = []
@@ -15,8 +13,6 @@ File.open(ROBOT_LIST_FILE, "r") do |f|
   end
 end
 websites = websites.uniq
-
-# websites = ['google.com'] if DEBUG
 
 headers = ['https', 'http']
 
@@ -29,25 +25,26 @@ websites_urls = Hash[websites.map { |website|
 class RobotsScraper
 
   def initialize(websites_urls)
-    # puts "websites_urls #{websites_urls}" if DEBUG
+    # @targets is an array of type {<example.org> => RobotAnalyzer}
     @targets = Hash[websites_urls.map { |website, urls|
-      puts "URL #{urls}"
       url = urls.map { |url|
-        robots_url = url + "/robots.txt"#{}"#{url}/robots.txt"
+        robots_url = url + "/robots.txt"
         robots_url if exists robots_url
       }.first
       [ website, url ]
      }].delete_if { |website, url| url.nil? }.map { |website, url|
-      puts "website #{website}"
-      puts "url #{url}"
-      [website, RobotsAnalyzer.new(url)]
-    }
+      { website => RobotsAnalyzer.new(website, url) }
+    }.inject(:merge)
   end
 
   def show
-    puts "targets #{@targets}"
+    puts "TARGETS #{@targets}"
     @targets.map { |website, robotsAnalyzer| robotsAnalyzer.show }
     puts
+  end
+
+  def getRobotAnalyzerFor(website)
+    @targets[website]
   end
 
   private
@@ -63,4 +60,7 @@ class RobotsScraper
 end
 
 rs = RobotsScraper.new(websites_urls)
-rs.show
+ra = rs.getRobotAnalyzerFor "google.com"
+ua = ra.getUseragent "*"
+allow_rules = ua.getAllowRules
+puts "allow_rules #{allow_rules}"

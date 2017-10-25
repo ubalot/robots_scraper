@@ -6,20 +6,25 @@ class RobotsAnalyzer
   @@ua_identifier = "User-agent: "  # user-agent identifier
   @@sm_identifier = "Sitemap: "  # site-map identifier
 
-  def initialize(robots_url)
+  def initialize(website, robots_url)
+    @website = website
     @robot_url = robots_url
     @robot_content = getTargetContent
     @useragents = (extractUseragentsAndRules).map { |useragent, rules|
-        Useragent.new(useragent, rules) unless useragent.nil? or rules.nil?
-    }.delete_if { |userAgent| userAgent.nil? }
+        { useragent => Useragent.new(useragent, rules) } unless useragent.nil? or rules.nil?
+    }.delete_if { |userAgent| userAgent.nil? }.inject(:merge)
     @sitemaps = extractSitemaps
   end
 
   def show
     puts "@robot_url #{@robot_url}"
-    puts "@useragents #{@useragents}"
+    # puts "@useragents #{@useragents}"
     @useragents.map do |useragent| useragent.show end
     @sitemaps.map do |sitemap| sitemap.show end
+  end
+
+  def getUseragent(useragent)
+    @useragents[useragent] unless @useragents[useragent].nil?
   end
 
   private

@@ -46,7 +46,7 @@ class RobotsAnalyzer
       new_useragent = extractUseragent line unless line[@@ua_identifier].nil?
       useragent = new_useragent unless new_useragent.nil?
       useragents[useragent] = [] if useragents[useragent].nil?
-      rule = line if line[@@ua_identifier].nil? and line[@@sm_identifier].nil? and line.start_with?("#")
+      rule = line if line[@@ua_identifier].nil? and line[@@sm_identifier].nil? and !line.start_with?("#")
       useragents[useragent].push(rule) unless useragent.nil? or rule.nil? or rule.empty?
     } unless @robot_content.nil?
 
